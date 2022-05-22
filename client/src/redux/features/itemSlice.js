@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
-import * as api from "../api";
 
+import * as api from "../api";
 export const fetchItems = createAsyncThunk(
   "items",
   async ({ toast }, { rejectWithValue }) => {
@@ -10,6 +10,21 @@ export const fetchItems = createAsyncThunk(
       return res.data;
     } catch (error) {
       toast.error("internal server error");
+      return rejectWithValue(error.res.data);
+    }
+  }
+);
+export const order = createAsyncThunk(
+  "order",
+  async ({ toast, obj, navigate }, { rejectWithValue }) => {
+    try {
+      const res = await api.newOrder(obj);
+
+      toast.success("Order Placed Successfully");
+      navigate("/orders");
+      return res.data;
+    } catch (error) {
+      toast.error("Not able to place order ");
       return rejectWithValue(error.res.data);
     }
   }
@@ -62,7 +77,7 @@ const itemSlice = createSlice({
       const itemIndex = state.cart.findIndex(
         item => item.id === action.payload.id
       );
-      console.log(itemIndex);
+
       if (state.cart[itemIndex].qty > 1) {
         state.cart[itemIndex].qty -= 1;
         toast.success("Quantity decreased ");
@@ -84,7 +99,18 @@ const itemSlice = createSlice({
       state.items = action.payload;
     },
     [fetchItems.rejected]: (state, action) => {
+      state.loading = false;
+    },
+    [order.pending]: (state, action) => {
       state.loading = true;
+    },
+    [order.fulfilled]: (state, action) => {
+      state.cart = [];
+      state.loading = false;
+      state.cartTotalQty = 0;
+    },
+    [order.rejected]: (state, action) => {
+      state.loading = false;
     },
   },
 });
